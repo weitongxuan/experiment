@@ -1,0 +1,124 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wordpress
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-deployment
+  namespace: wordpress
+  labels:
+    app: wordpress-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress-pod
+  template:
+    metadata:
+      labels:
+        app: wordpress-pod
+    spec:  
+      containers:
+        - name: wordpress
+          image: wordpress
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: wp-pod-port
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: db:3306
+            - name: WORDPRESS_DB_USER
+              value: asdasdasd
+            - name: WORDPRESS_DB_PASSWORD
+              value: asdasdasd
+            - name: WORDPRESS_DB_NAME
+              value: wordpress
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: wordpress
+  name: azure-managed-disk
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: default
+  resources:
+    requests:
+      storage: 5Gi
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-deployment
+  namespace: wordpress
+  labels:
+    app: db-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-pod
+  template:    
+    metadata:
+      labels:
+        app: db-pod
+    spec:
+      volumes:
+        - name: volume
+          persistentVolumeClaim:
+            claimName: azure-managed-disk
+      containers:
+        - name: db          
+          image: mysql
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name:  volume
+          ports:
+            - containerPort: 3306
+              name: db-port
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: asdasdasd
+            - name: MYSQL_DATABASE
+              value: wordpress
+            - name: MYSQL_USER
+              value: asdasdasd
+            - name: MYSQL_PASSWORD
+              value: asdasdasd            
+
+--- 
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: wordpress
+  name: db
+spec:
+  selector:
+    app: db-pod
+  ports:
+  - port: 3306
+    targetPort: db-port
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: wordpress
+  name: wordpress-svc
+spec:
+  
+  selector:
+    app: wordpress-pod
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 80
