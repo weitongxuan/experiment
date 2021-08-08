@@ -43,3 +43,13 @@ module "wp_prod" {
     azurerm_kubernetes_cluster.k8s
   ]
 }
+
+terraform {
+  backend "remote" {
+    organization = "simonwei"
+
+    workspaces {
+      name = "test"
+    }
+  }
+}
