@@ -14,13 +14,13 @@ resource "helm_release" "rook" {
   ]
 }
 
-# resource "helm_release" "rook" {
-#   name       = "rook-ceph"
-#   repository = "https://charts.rook.io/release"
-#   chart      = "rook-ceph-cluster"
-#   namespace = "rook-ceph"
+resource "helm_release" "rook" {
+  name       = "rook-ceph"
+  repository = "https://charts.rook.io/release"
+  chart      = "rook-ceph-cluster"
+  namespace = "rook-ceph"
 
-#   values = [
-#     "${file("values.yaml")}"
-#   ]
-# }
+  values = [
+    "${file("values.yaml")}"
+  ]
+}

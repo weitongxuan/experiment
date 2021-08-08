@@ -1,74 +1,8 @@
-# Default values for a single rook-ceph cluster
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
-# Namespace of the main rook operator
-operatorNamespace: rook-ceph
-
-# The metadata.name of the CephCluster CR. The default name is the same as the namespace.
-# clusterName: rook-ceph
-
-# Ability to override ceph.conf
-# configOverride: |
-#   [global]
-#   mon_allow_pool_delete = true
-#   osd_pool_default_size = 3
-#   osd_pool_default_min_size = 2
-
-# Installs a debugging toolbox deployment
-toolbox:
-  enabled: false
-  image: rook/ceph:VERSION
-  tolerations: []
-  affinity: {}
-
-monitoring:
-  # requires Prometheus to be pre-installed
-  # enabling will also create RBAC rules to allow Operator to create ServiceMonitors
-  enabled: false
-  rulesNamespaceOverride:
-
-# imagePullSecrets option allow to pull docker images from private docker registry. Option will be passed to all service accounts.
-# imagePullSecrets:
-# - name: my-registry-secret
 
 # All values below are taken from the CephCluster CRD
 # More information can be found at [Ceph Cluster CRD](/Documentation/ceph-cluster-crd.md)
 cephClusterSpec:
   cephVersion:
-    # The container image used to launch the Ceph daemon pods (mon, mgr, osd, mds, rgw).
-    # v14 is nautilus, v15 is octopus, and v16 is pacific.
-    # RECOMMENDATION: In production, use a specific version tag instead of the general v14 flag, which pulls the latest release and could result in different
-    # versions running within the cluster. See tags available at https://hub.docker.com/r/ceph/ceph/tags/.
-    # If you want to be more precise, you can always use a timestamp tag such quay.io/ceph/ceph:v15.2.11-20200419
-    # This tag might not contain a new Ceph version, just security fixes from the underlying operating system, which will reduce vulnerabilities
-    image: quay.io/ceph/ceph:v16.2.5
-    # Whether to allow unsupported versions of Ceph. Currently `nautilus` and `octopus` are supported.
-    # Future versions such as `pacific` would require this to be set to `true`.
-    # Do not set to true in production.
-    allowUnsupported: false
-
-  # The path on the host where configuration files will be persisted. Must be specified.
-  # Important: if you reinstall the cluster, make sure you delete this directory from each host or else the mons will fail to start on the new cluster.
-  # In Minikube, the '/data' directory is configured to persist across reboots. Use "/data/rook" in Minikube environment.
-  dataDirHostPath: /var/lib/rook
-
-  # Whether or not upgrade should continue even if a check fails
-  # This means Ceph's status could be degraded and we don't recommend upgrading but you might decide otherwise
-  # Use at your OWN risk
-  # To understand Rook's upgrade process of Ceph, read https://rook.io/docs/rook/master/ceph-upgrade.html#ceph-version-upgrades
-  skipUpgradeChecks: false
-
-  # Whether or not continue if PGs are not clean during an upgrade
-  continueUpgradeAfterChecksEvenIfNotHealthy: false
-
-  # WaitTimeoutForHealthyOSDInMinutes defines the time (in minutes) the operator would wait before an OSD can be stopped for upgrade or restart.
-  # If the timeout exceeds and OSD is not ok to stop, then the operator would skip upgrade for the current OSD and proceed with the next one
-  # if `continueUpgradeAfterChecksEvenIfNotHealthy` is `false`. If `continueUpgradeAfterChecksEvenIfNotHealthy` is `true`, then opertor would
-  # continue with the upgrade of an OSD even if its not ok to stop after the timeout. This timeout won't be applied if `skipUpgradeChecks` is `true`.
-  # The default wait timeout is 10 minutes.
-  waitTimeoutForHealthyOSDInMinutes: 10
-
   mon:
     # Set the number of mons to be started. Must be an odd number, and is generally recommended to be 3.
     count: 3
@@ -354,63 +288,10 @@ cephBlockPools:
 
 cephFileSystems:
   - name: ceph-filesystem
-    # see https://github.com/rook/rook/blob/master/Documentation/ceph-filesystem-crd.md#filesystem-settings for available configuration
-    spec:
-      metadataPool:
-        replicated:
-          size: 3
-      dataPools:
-        - failureDomain: host
-          replicated:
-            size: 3
-      metadataServer:
-        activeCount: 1
-        activeStandby: true
     storageClass:
-      enabled: true
-      name: ceph-filesystem
-      reclaimPolicy: Delete
-      # see https://github.com/rook/rook/blob/master/Documentation/ceph-filesystem.md#provision-storage for available configuration
-      parameters:
-        # The secrets contain Ceph admin credentials.
-        csi.storage.k8s.io/provisioner-secret-name: rook-csi-cephfs-provisioner
-        csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph
-        csi.storage.k8s.io/controller-expand-secret-name: rook-csi-cephfs-provisioner
-        csi.storage.k8s.io/controller-expand-secret-namespace: rook-ceph
-        csi.storage.k8s.io/node-stage-secret-name: rook-csi-cephfs-node
-        csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
-        # Specify the filesystem type of the volume. If not specified, csi-provisioner
-        # will set default as `ext4`. Note that `xfs` is not recommended due to potential deadlock
-        # in hyperconverged settings where the volume is mounted on the same node as the osds.
-        csi.storage.k8s.io/fstype: ext4
+      enabled: False
 
 cephObjectStores:
   - name: ceph-objectstore
-    # see https://github.com/rook/rook/blob/master/Documentation/ceph-object-store-crd.md#object-store-settings for available configuration
-    spec:
-      metadataPool:
-        failureDomain: host
-        replicated:
-          size: 3
-      dataPool:
-        failureDomain: host
-        erasureCoded:
-          dataChunks: 2
-          codingChunks: 1
-      preservePoolsOnDelete: true
-      gateway:
-        port: 80
-        # securePort: 443
-        # sslCertificateRef:
-        instances: 1
-      healthCheck:
-        bucket:
-          interval: 60s
     storageClass:
-      enabled: true
-      name: ceph-bucket
-      reclaimPolicy: Delete
-      # see https://github.com/rook/rook/blob/master/Documentation/ceph-object-bucket-claim.md#storageclass for available configuration
-      parameters:
-        # note: objectStoreNamespace and objectStoreName are configured by the chart
-        region: us-east-1
+      enabled: False
