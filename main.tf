@@ -44,6 +44,10 @@ module "wp_prod" {
   ]
 }
 
+module "name" {
+  source = "./module/rook"
+}
+
 terraform {
   backend "remote" {
     organization = "simonwei"
@@ -53,3 +57,4 @@ terraform {
     }
   }
 }
+
